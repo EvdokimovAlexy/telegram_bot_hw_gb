@@ -4,7 +4,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, message
 from data_base import sqlite
-from data_base.sqlite import db_start, create_profile, edit_profile
+from data_base.sqlite import db_start, edit_profile
 from aiogram.utils.callback_data import CallbackData
 async def on_startup(_):
     await db_start()
@@ -72,10 +72,10 @@ async def cmd_cancel(message: types.Message, state: FSMContext):
 
 @dp.message_handler(commands=['start'])
 async def cmd_start(message: types.Message) -> None:
-    await message.answer('Welcome! So as to create profile - type /create\n /view',
+    await message.answer('Добро пожаловать в телефонную книгу - type /create\n /view',
                          reply_markup=get_kb())
 
-    await create_profile(user_id=message.from_user.id)
+    await edit_profile(chat_id=message.from_user.id)
 
 
 @dp.message_handler(commands=['create'])
@@ -119,7 +119,7 @@ async def load_desc(message: types.Message, state: FSMContext) -> None:
         #                      # first_name=data['first_name'],
         #                      caption=f"{data['name']}, {data['name']}\n{data['description']}")
 
-    await edit_profile(state, user_id=message.from_user.id)
+    await edit_profile(state)
     await message.reply('Ваш контакт создан!')
     await state.finish()
 
