@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 from aiogram import types, executor, Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
@@ -6,6 +8,11 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from data_base import sqlite
 from data_base.sqlite import db_start, edit_profile
 from aiogram.utils.callback_data import CallbackData
+
+
+
+
+
 async def on_startup(_):
     await db_start()
 
@@ -16,6 +23,45 @@ dp = Dispatcher(bot,
                 storage=storage)
 
 
+
+value = ''
+old_value = ''
+
+choice = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [  # 1 row
+            InlineKeyboardButton("7", callback_data="7"),
+            InlineKeyboardButton(text="8", callback_data='8'),
+            InlineKeyboardButton(text="9", callback_data='9'),
+            InlineKeyboardButton(text="+/-", callback_data='+'),
+            InlineKeyboardButton(text="<-", callback_data='<-'),
+            InlineKeyboardButton(text="C", callback_data='C'),
+            InlineKeyboardButton(text="", callback_data='no'),
+        ],
+        [  # 2 row
+            InlineKeyboardButton(text="4", callback_data='4'),
+            InlineKeyboardButton(text="5", callback_data='5'),
+            InlineKeyboardButton(text="6", callback_data='6'),
+            InlineKeyboardButton(text="/", callback_data='/'),
+            InlineKeyboardButton(text="//", callback_data='//'),
+            InlineKeyboardButton(text="%", callback_data='%'),
+        ],
+        [  # 3 row
+            InlineKeyboardButton(text="1", callback_data='1'),
+            InlineKeyboardButton(text="2", callback_data='2'),
+            InlineKeyboardButton(text="3", callback_data='3'),
+            InlineKeyboardButton(text="*", callback_data='*'),
+            InlineKeyboardButton(text="-", callback_data='-'),
+            InlineKeyboardButton(text="pow", callback_data='pow'),
+        ],
+        [  # 4 row
+            InlineKeyboardButton(text="0", callback_data='0'),
+            InlineKeyboardButton(text=",", callback_data=','),
+            InlineKeyboardButton(text="+", callback_data='+'),
+            InlineKeyboardButton(text="=", callback_data='='),
+        ]
+    ]
+)
 
 class ProfileStatesGroup(StatesGroup):
 
@@ -36,7 +82,7 @@ class ProfileStatesGroup(StatesGroup):
 def get_kb() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(KeyboardButton('/create'))
-
+    kb.add(KeyboardButton('/calc'))
     return kb
 
 def get_cancel_kb() -> ReplyKeyboardMarkup:
@@ -51,6 +97,11 @@ def get_view_kb() -> ReplyKeyboardMarkup:
 
     return kb
 
+def get_calc_kb() -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add(KeyboardButton('/calc'))
+
+    return kb
 # def get_products_ikb() -> InlineKeyboardMarkup:
 #     ikb = InlineKeyboardMarkup(inline_keyboard=[
 #         [InlineKeyboardButton('Просмотр всех контактов', callback_data='get_all_products')],
@@ -72,10 +123,10 @@ async def cmd_cancel(message: types.Message, state: FSMContext):
 
 @dp.message_handler(commands=['start'])
 async def cmd_start(message: types.Message) -> None:
-    await message.answer('Добро пожаловать в телефонную книгу - type /create\n /view',
+    await message.answer('Добро пожаловать в телефонную книгу - type /create\n type /view\n type /calc',
                          reply_markup=get_kb())
 
-    await edit_profile(chat_id=message.from_user.id)
+    # await edit_profile(chat_id=message.from_user.id)
 
 
 @dp.message_handler(commands=['create'])
@@ -83,6 +134,34 @@ async def cmd_create(message: types.Message) -> None:
     await message.reply("Введите Вашу фамилию!",
                         reply_markup=get_cancel_kb())
     await ProfileStatesGroup.first_name.set()  # установили состояние имени
+
+@dp.callback_query_handler(lambda callback_query: True)
+async def callback_func(query):
+    global value, old_value
+    data1 = query.data
+
+    if data1 == 'no':
+        pass
+    elif data1 == 'C':
+        value = ''
+    elif data1 == '=':
+        value = str(eval(value))
+    else:
+        value += data1
+    if value != old_value:
+        if value == '':
+            await bot.edit_message_text(chat_id=query.message.chat.id, message_id=query.message.message.id, text='0', reply_markup=choice)
+        else:
+            await bot.edit_message_text(chat_id=query.message.chat.id, message_id=query.message.message.id, text=value,
+                                        reply_markup=choice)
+    old_value = value
+@dp.message_handler(commands=['calc'])
+async def cmd_calc(message: types.Message):
+    global value
+    if value == '':
+        await bot.send_message(message.from_user.id, '0', reply_markup=choice)
+    else:
+        await bot.send_message(message.from_user.id, value, reply_markup=choice)
 
 
 @dp.message_handler(state=ProfileStatesGroup.first_name)
