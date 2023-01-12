@@ -127,8 +127,24 @@ async def cmd_start(message: types.Message) -> None:
                          reply_markup=get_kb())
 
     # await edit_profile(chat_id=message.from_user.id)
+@dp.message_handler(commands=['calc'])
+async def cmd_calc(message: types.Message):
+    global value
+    if value == '':
+        await bot.send_message(message.from_user.id, '2', reply_markup=choice)
+    else:
+        await bot.send_message(message.from_user.id, value, reply_markup=choice)
 
 
+inline_btn_1 = InlineKeyboardButton('Первая кнопка!', callback_data='button1')
+inline_kb1 = InlineKeyboardMarkup().add(inline_btn_1)
+@dp.message_handler(commands=['1'])
+async def process_command_1(message: types.Message):
+    await message.reply("Первая инлайн кнопка", reply_markup=inline_kb1)
+@dp.callback_query_handler(lambda c: c.data == 'button1')
+async def process_callback_button1(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, 'Нажата первая кнопка!')
 @dp.message_handler(commands=['create'])
 async def cmd_create(message: types.Message) -> None:
     await message.reply("Введите Вашу фамилию!",
@@ -150,18 +166,11 @@ async def callback_func(query):
         value += data1
     if value != old_value:
         if value == '':
-            await bot.edit_message_text(chat_id=query.message.chat.id, message_id=query.message.message.id, text='0', reply_markup=choice)
-        else:
-            await bot.edit_message_text(chat_id=query.message.chat.id, message_id=query.message.message.id, text=value,
-                                        reply_markup=choice)
+            await bot.edit_message_text(text='0', reply_markup=choice)
+        # else:
+        #     await bot.edit_message_text(text=value, reply_markup=choice)
     old_value = value
-@dp.message_handler(commands=['calc'])
-async def cmd_calc(message: types.Message):
-    global value
-    if value == '':
-        await bot.send_message(message.from_user.id, '0', reply_markup=choice)
-    else:
-        await bot.send_message(message.from_user.id, value, reply_markup=choice)
+
 
 
 @dp.message_handler(state=ProfileStatesGroup.first_name)
